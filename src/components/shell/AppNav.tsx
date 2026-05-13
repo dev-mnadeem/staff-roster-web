@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/shared/utils";
+import { isWithin } from "@/shared/paths";
 import { UserRole } from "@/shared/constants";
 import { ROUTES } from "@/shared/routes";
 
@@ -65,6 +66,17 @@ const NAV: NavGroup[] = [
   },
 ];
 
+/**
+ * The one nav link that owns `pathname`: the deepest one containing it.
+ * "/swaps/open" sits inside both "/swaps" and "/swaps/open", and only the
+ * latter should light up.
+ */
+export function activeNavHref(pathname: string): string | undefined {
+  return NAV.flatMap((group) => group.items.map((item) => item.href))
+    .filter((href) => isWithin(pathname, href))
+    .sort((a, b) => b.length - a.length)[0];
+}
+
 type Props = {
   role: UserRole;
   /** Called after a link is followed, so the mobile drawer can close itself. */
@@ -72,7 +84,7 @@ type Props = {
 };
 
 export function AppNav({ role, onNavigate }: Props) {
-  const pathname = usePathname();
+  const activeHref = activeNavHref(usePathname());
 
   return (
     <nav className="flex flex-col gap-6" aria-label="Main">
@@ -89,12 +101,7 @@ export function AppNav({ role, onNavigate }: Props) {
               {group.heading}
             </h2>
             {visible.map((item) => {
-              // `startsWith` so a detail page keeps its section highlighted,
-              // but an exact check for the overview or every route matches it.
-              const active =
-                item.href === ROUTES.dashboard
-                  ? pathname === item.href
-                  : pathname.startsWith(item.href);
+              const active = item.href === activeHref;
 
               return (
                 <Link
