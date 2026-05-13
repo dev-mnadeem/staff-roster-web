@@ -69,13 +69,6 @@ export const AuthForm: FunctionComponent<AuthFormProps> = ({
       </CardHeader>
       <form action={formAction}>
         <CardContent className="grid gap-4">
-          <input
-            type="hidden"
-            name="origin"
-            value={
-              typeof window === "undefined" ? "" : window.location.origin
-            }
-          />
           {next ? <input type="hidden" name="next" value={next} /> : null}
           <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>

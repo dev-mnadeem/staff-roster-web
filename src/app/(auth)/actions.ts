@@ -1,10 +1,12 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/auth/mode";
 import { signInLocal, signOutLocal } from "@/lib/auth/session.server";
+import { safeNextPath } from "@/shared/redirect";
 import { ROUTES } from "@/shared/routes";
 import type { AuthFormState } from "@/types/auth";
 
@@ -40,8 +42,7 @@ export async function login(
     if (error) return { error };
   }
 
-  const next = (formData.get("next") as string) || ROUTES.dashboard;
-  redirect(next);
+  redirect(safeNextPath(formData.get("next")));
 }
 
 export async function signup(
@@ -68,7 +69,9 @@ export async function signup(
   }
 
   const supabase = await createClient();
-  const origin = (formData.get("origin") as string) || "";
+  // Taken from the request rather than a form field, so the confirmation
+  // link cannot be pointed at another site.
+  const origin = (await headers()).get("origin") ?? "";
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
