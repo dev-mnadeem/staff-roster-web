@@ -31,9 +31,11 @@ export function toServerApiUrl(url: string): string {
 
 /** Base URL for server-side calls that are not built from `shared/routes`. */
 export function serverApiBaseUrl(): string {
+  // `||`, not `??`: Compose passes an unset variable through as "", which
+  // must fall back the same way toServerApiUrl treats it.
   return (
-    process.env.API_BASE_URL_INTERNAL ??
-    process.env.NEXT_PUBLIC_BACKEND_ENDPOINT ??
+    process.env.API_BASE_URL_INTERNAL ||
+    process.env.NEXT_PUBLIC_BACKEND_ENDPOINT ||
     "http://localhost:4000/api"
   );
 }
