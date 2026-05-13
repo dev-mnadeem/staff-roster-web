@@ -36,14 +36,20 @@ export function AppShell({
 
   return (
     <div className="flex min-h-full flex-col">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:shadow"
+      >
+        Skip to content
+      </a>
       <header className="sticky top-0 z-30 border-b border-border bg-background/85 backdrop-blur">
-        <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
+        <div className="flex h-14 items-center gap-3 px-4 sm:gap-4 sm:px-6">
           <Link href={ROUTES.dashboard} className="flex items-center gap-2">
             <span
               aria-hidden
-              className="h-4 w-1 rounded-full bg-foreground"
+              className="h-5 w-1.5 rounded-full bg-brand"
             />
-            <span className="font-heading text-[15px] font-semibold tracking-tight">
+            <span className="font-heading text-lg font-semibold tracking-tight">
               ShiftSync
             </span>
           </Link>
@@ -57,7 +63,7 @@ export function AppShell({
             <div className="hidden items-center gap-2 sm:flex">
               <span
                 aria-hidden
-                className="grid h-7 w-7 place-items-center rounded-full bg-foreground text-[11px] font-semibold text-background"
+                className="grid h-7 w-7 place-items-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground"
               >
                 {initials}
               </span>
@@ -80,16 +86,13 @@ export function AppShell({
       <div className="flex flex-1">
         {/* Collapses on small screens rather than shrinking: a cramped sidebar
             competing with a schedule table serves neither. */}
-        <aside className="hidden w-56 shrink-0 border-r border-border px-3 py-6 lg:block">
+        <aside className="hidden w-56 shrink-0 border-r border-border bg-sidebar px-3 py-6 lg:block">
           <AppNav role={role} />
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-8">
-          {/* Horizontal scroller on mobile, where the sidebar is hidden. */}
-          <div className="mb-6 -mx-4 overflow-x-auto px-4 lg:hidden">
-            <div className="min-w-max">
-              <AppNav role={role} />
-            </div>
+        <main id="main" className="min-w-0 flex-1 px-4 py-6 sm:px-8">
+          <div className="mb-6 -mx-4 overflow-x-auto px-4 pb-1 lg:hidden">
+            <AppNav role={role} layout="bar" />
           </div>
           <div className="mx-auto max-w-6xl">{children}</div>
         </main>

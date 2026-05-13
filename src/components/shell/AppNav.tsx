@@ -79,12 +79,47 @@ export function activeNavHref(pathname: string): string | undefined {
 
 type Props = {
   role: UserRole;
-  /** Called after a link is followed, so the mobile drawer can close itself. */
-  onNavigate?: () => void;
+  /**
+   * "sidebar" stacks the groups under their headings; "bar" lays every link
+   * in one scrollable row for narrow screens, where the stacked version would
+   * push the page itself below the fold.
+   */
+  layout?: "sidebar" | "bar";
 };
 
-export function AppNav({ role, onNavigate }: Props) {
+export function AppNav({ role, layout = "sidebar" }: Props) {
   const activeHref = activeNavHref(usePathname());
+
+  if (layout === "bar") {
+    const items = NAV.flatMap((group) => group.items).filter(
+      (item) => !item.roles || item.roles.includes(role),
+    );
+    return (
+      <nav aria-label="Main">
+        <ul className="flex gap-1.5">
+          {items.map((item) => {
+            const active = item.href === activeHref;
+            return (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "block whitespace-nowrap rounded-full border px-3 py-1 text-[13px] transition-colors",
+                    active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    );
+  }
 
   return (
     <nav className="flex flex-col gap-6" aria-label="Main">
@@ -107,12 +142,11 @@ export function AppNav({ role, onNavigate }: Props) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "rounded-md px-3 py-1.5 text-sm transition-colors",
                     active
-                      ? "bg-accent font-medium text-accent-foreground"
+                      ? "bg-accent font-medium text-accent-foreground shadow-[inset_2px_0_0_var(--primary)]"
                       : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
                   )}
                 >

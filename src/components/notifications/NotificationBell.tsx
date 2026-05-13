@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FunctionComponent } from "react";
+import { useEffect, useId, useRef, useState, type FunctionComponent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,25 @@ export const NotificationBell: FunctionComponent<NotificationBellProps> = ({
 }) => {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const panelId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Behave like a popover: Escape or a click elsewhere dismisses it.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+    const onPointer = (event: PointerEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [open]);
 
   const { data: notifications } = useNotifications();
   const { data: unread } = useUnreadCount();
@@ -84,23 +103,30 @@ export const NotificationBell: FunctionComponent<NotificationBellProps> = ({
   const unreadCount = unread?.count ?? 0;
 
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <Button
         type="button"
         variant="outline"
         size="sm"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-controls={panelId}
       >
         Notifications
         {unreadCount > 0 ? (
-          <Badge variant="default" className="ml-2">
+          <Badge className="ml-1 bg-brand text-brand-foreground">
             {unreadCount}
+            <span className="sr-only"> unread</span>
           </Badge>
         ) : null}
       </Button>
       {open ? (
-        <Card className="absolute right-0 z-20 mt-2 w-80 max-h-[28rem] overflow-y-auto">
+        <Card
+          id={panelId}
+          role="region"
+          aria-label="Notifications"
+          className="absolute right-0 z-20 mt-2 max-h-[28rem] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto shadow-lg"
+        >
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle className="text-base">Notifications</CardTitle>
             {unreadCount > 0 ? (
@@ -153,7 +179,7 @@ const NotificationRow: FunctionComponent<{
     <div
       className={
         "rounded-md border p-2 text-sm " +
-        (isUnread ? "border-primary/40 bg-primary/5" : "border-border")
+        (isUnread ? "border-l-4 border-l-brand border-border" : "border-border")
       }
     >
       <div className="flex items-start justify-between gap-2">
@@ -164,6 +190,7 @@ const NotificationRow: FunctionComponent<{
             variant="ghost"
             size="sm"
             onClick={onMarkRead}
+            aria-label={`Mark "${notification.title}" as read`}
           >
             Read
           </Button>
