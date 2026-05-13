@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { LOCAL_TOKEN_COOKIE, isSupabaseConfigured } from "@/lib/auth/mode";
+import { isWithin } from "@/shared/paths";
 import { ROUTES } from "@/shared/routes";
 
 const PROTECTED_PREFIXES = [
@@ -14,12 +15,13 @@ const PROTECTED_PREFIXES = [
   ROUTES.adminAudit,
   ROUTES.onDuty,
   ROUTES.analytics,
+  ROUTES.planner,
 ];
 const AUTH_ROUTES = [ROUTES.login, ROUTES.signup];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isProtectedPath = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const isProtectedPath = PROTECTED_PREFIXES.some((p) => isWithin(pathname, p));
   const isAuthPath = AUTH_ROUTES.includes(pathname);
 
   // Self-hosted mode: presence of the token cookie is the signal. The token is
