@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { LogoutButton } from "@/app/(app)/dashboard/_components/LogoutButton";
 import { ProfileHeader } from "@/app/(app)/dashboard/_components/ProfileHeader";
 import { DashboardLinks } from "@/app/(app)/dashboard/_components/DashboardLinks";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { NotificationChannelToggle } from "@/components/notifications/NotificationChannelToggle";
 import {
   Card,
@@ -26,18 +25,15 @@ export const Dashboard = async () => {
 
   return (
     <div className="flex flex-1 flex-col gap-6">
-      <div className="flex items-start justify-between gap-3">
-        <ProfileHeader
-          email={user.email}
-          displayName={displayName}
-          role={role}
-          desiredHoursPerWeek={
-            meResult.ok ? meResult.data.desiredHoursPerWeek : undefined
-          }
-          lastSignInAt={meResult.ok ? meResult.data.lastSignInAt : undefined}
-        />
-        <NotificationBell userId={user.id} />
-      </div>
+      <ProfileHeader
+        email={user.email}
+        displayName={displayName}
+        role={role}
+        desiredHoursPerWeek={
+          meResult.ok ? meResult.data.desiredHoursPerWeek : undefined
+        }
+        lastSignInAt={meResult.ok ? meResult.data.lastSignInAt : undefined}
+      />
 
       {!meResult.ok ? (
         <Card>
