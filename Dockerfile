@@ -12,7 +12,10 @@ RUN npm run build
 # ---- runtime --------------------------------------------------------------
 FROM node:22-alpine AS runtime
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
+# The standalone server binds to $HOSTNAME, which Docker sets to the
+# container id; listen on every interface so the health check and published
+# port can reach it.
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=3000
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build --chown=app:app /app/.next/standalone ./
 COPY --from=build --chown=app:app /app/.next/static ./.next/static
