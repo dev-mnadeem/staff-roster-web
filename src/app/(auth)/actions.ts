@@ -3,6 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseConfigured } from "@/lib/auth/mode";
+import { signInLocal, signOutLocal } from "@/lib/auth/session.server";
 import { ROUTES } from "@/shared/routes";
 import type { AuthFormState } from "@/types/auth";
 
@@ -29,11 +31,13 @@ export async function login(
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
   }
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword(parsed.data);
-
-  if (error) {
-    return { error: error.message };
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword(parsed.data);
+    if (error) return { error: error.message };
+  } else {
+    const { error } = await signInLocal(parsed.data.email, parsed.data.password);
+    if (error) return { error };
   }
 
   const next = (formData.get("next") as string) || ROUTES.dashboard;
@@ -51,6 +55,16 @@ export async function signup(
 
   if (!parsed.success) {
     return { fieldErrors: z.flattenError(parsed.error).fieldErrors };
+  }
+
+  if (!isSupabaseConfigured()) {
+    // Self-hosted accounts are created by the seed, not by public signup —
+    // this is a staffing tool, not a product anyone can join.
+    return {
+      error:
+        "Self-signup is disabled in local mode. Sign in with a seeded account " +
+        "(see the README) or configure Supabase.",
+    };
   }
 
   const supabase = await createClient();
@@ -77,7 +91,11 @@ export async function signup(
 }
 
 export async function logout() {
-  const supabase = await createClient();
-  await supabase.auth.signOut();
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+  } else {
+    await signOutLocal();
+  }
   redirect(ROUTES.login);
 }
