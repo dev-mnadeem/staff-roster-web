@@ -13,9 +13,13 @@ const NOTIFICATIONS_PATH = `${backendURL}/notifications`;
 const AUDIT_PATH = `${backendURL}/audit`;
 const ON_DUTY_PATH = `${backendURL}/on-duty`;
 const ANALYTICS_PATH = `${backendURL}/analytics`;
+const PLANNER_PATH = `${backendURL}/planner`;
 
 // Backend Routes
 export const APIS = {
+  planner: {
+    plan: `${PLANNER_PATH}/plan`,
+  },
   auth: {
     me: ME_PATH,
   },
@@ -189,4 +193,5 @@ export const ROUTES = {
   onDuty: "/on-duty",
   analytics: "/analytics",
   adminAudit: "/admin/audit",
+  planner: "/planner",
 };

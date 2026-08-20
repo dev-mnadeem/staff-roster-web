@@ -6,6 +6,14 @@ import type {
   RealtimePostgresChangesFilter,
 } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseConfigured } from "@/lib/auth/mode";
+
+/**
+ * How often to re-check for changes when live subscriptions are unavailable.
+ * Long enough not to hammer the API, short enough that a notification does not
+ * feel lost.
+ */
+const POLL_INTERVAL_MS = 15_000;
 
 type Event = "INSERT" | "UPDATE" | "DELETE" | "*";
 
@@ -32,14 +40,38 @@ export function useTableChannel<T extends Record<string, unknown>>(
   options: Options,
   onChange: (payload: RealtimePostgresChangesPayload<T>) => void,
 ): void {
-  // Hold the latest callback in a ref so we can subscribe once and not retear
-  // on every render.
+  // Hold the latest callback in a ref so the subscription is created once and
+  // not torn down on every render. Assigned in an effect rather than during
+  // render, which React forbids: a render may be discarded, and mutating a ref
+  // on the way through would leave the ref reflecting work that never
+  // committed.
   const callbackRef = useRef(onChange);
-  callbackRef.current = onChange;
+  useEffect(() => {
+    callbackRef.current = onChange;
+  }, [onChange]);
 
   const { table, filter, event = "*", channelKey } = options;
 
   useEffect(() => {
+    // Postgres Changes is a Supabase feature. Self-hosted, there is nothing to
+    // subscribe to, so the same callback is driven on an interval instead:
+    // consumers refetch either way, so they need no knowledge of which is
+    // running. Polling is a downgrade in latency, not in correctness.
+    if (!isSupabaseConfigured()) {
+      const id = setInterval(() => {
+        callbackRef.current({
+          eventType: "UPDATE",
+          new: {} as T,
+          old: {} as T,
+          schema: "public",
+          table,
+          commit_timestamp: new Date().toISOString(),
+          errors: null,
+        } as unknown as RealtimePostgresChangesPayload<T>);
+      }, POLL_INTERVAL_MS);
+      return () => clearInterval(id);
+    }
+
     const supabase = createClient();
     const channelName = `realtime:${table}:${channelKey ?? filter ?? "all"}`;
     const config: RealtimePostgresChangesFilter<typeof event> = {

@@ -1,18 +1,10 @@
-import { createClient } from "@/lib/supabase/client";
-
-async function getAccessToken(): Promise<string | null> {
-  const supabase = createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
+import { getClientAccessToken } from "@/lib/auth/token.client";
 
 export async function apiClientFetch<T>(
   url: string,
   init: RequestInit = {},
 ): Promise<T> {
-  const token = await getAccessToken();
+  const token = await getClientAccessToken();
   const headers = new Headers(init.headers);
   if (token) headers.set("Authorization", `Bearer ${token}`);
   if (!headers.has("Content-Type") && init.body) {

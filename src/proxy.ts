@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { LOCAL_TOKEN_COOKIE, isSupabaseConfigured } from "@/lib/auth/mode";
 import { ROUTES } from "@/shared/routes";
 
 const PROTECTED_PREFIXES = [
@@ -17,6 +18,30 @@ const PROTECTED_PREFIXES = [
 const AUTH_ROUTES = [ROUTES.login, ROUTES.signup];
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isProtectedPath = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
+  const isAuthPath = AUTH_ROUTES.includes(pathname);
+
+  // Self-hosted mode: presence of the token cookie is the signal. The token is
+  // still verified on every API call, so this only decides which page to show
+  // — it is routing, not authorisation.
+  if (!isSupabaseConfigured()) {
+    const hasToken = Boolean(request.cookies.get(LOCAL_TOKEN_COOKIE)?.value);
+
+    if (!hasToken && isProtectedPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = ROUTES.login;
+      url.searchParams.set("next", pathname);
+      return NextResponse.redirect(url);
+    }
+    if (hasToken && isAuthPath) {
+      const url = request.nextUrl.clone();
+      url.pathname = ROUTES.dashboard;
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -44,18 +69,14 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isProtected = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
-  const isAuthRoute = AUTH_ROUTES.includes(pathname);
-
-  if (!user && isProtected) {
+  if (!user && isProtectedPath) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.login;
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
+  if (user && isAuthPath) {
     const url = request.nextUrl.clone();
     url.pathname = ROUTES.dashboard;
     return NextResponse.redirect(url);

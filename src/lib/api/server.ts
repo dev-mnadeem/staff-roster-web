@@ -1,17 +1,11 @@
 import "server-only";
-import { createClient } from "@/lib/supabase/server";
+import { getAccessToken } from "@/lib/auth/session.server";
+import { toServerApiUrl } from "@/lib/api/base-url";
 
 export type ApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; error: string };
 
-async function getAccessToken(): Promise<string | null> {
-  const supabase = await createClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return session?.access_token ?? null;
-}
 
 export async function apiFetch<T>(
   url: string,
@@ -26,7 +20,7 @@ export async function apiFetch<T>(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetch(toServerApiUrl(url), {
       ...init,
       headers,
       cache: "no-store",
