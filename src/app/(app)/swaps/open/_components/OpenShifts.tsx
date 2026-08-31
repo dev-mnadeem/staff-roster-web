@@ -1,33 +1,31 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
-import { AuditViewer } from "@/app/admin/audit/_components/AuditViewer";
+import { OpenDropsList } from "@/app/(app)/swaps/open/_components/OpenDropsList";
 import { apiFetch } from "@/lib/api/server";
-import { UserRole } from "@/shared/constants";
 import { APIS, ROUTES } from "@/shared/routes";
 import type { CurrentUser } from "@/types/auth";
 
-export const AdminAudit = async () => {
+export const OpenShifts = async () => {
   const meResult = await apiFetch<CurrentUser>(APIS.auth.me);
   if (!meResult.ok) redirect(ROUTES.login);
-  if (meResult.data.role !== UserRole.Admin) redirect(ROUTES.dashboard);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-6">
+    <div className="flex flex-1 flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Audit log</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Open shifts</h1>
         <p className="text-muted-foreground text-sm">
-          Every change to shifts, assignments, swaps, and overrides is logged.
-          Filter and export to CSV.
+          Drop requests from coworkers that match your skills and certifications.
+          Claiming a shift sends it to a manager for approval.
         </p>
       </div>
-      <AuditViewer />
+      <OpenDropsList />
       <div>
         <Link
-          href={ROUTES.dashboard}
+          href={ROUTES.swaps}
           className={buttonVariants({ variant: "link", className: "px-0" })}
         >
-          ← Back to dashboard
+          ← Back to swap inbox
         </Link>
       </div>
     </div>
