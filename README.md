@@ -1,117 +1,153 @@
-# ShiftSync — Frontend
+# ShiftSync — Web
 
-Next.js app for **ShiftSync**, a multi-location staff-scheduling platform. Backend repo: [`shiftsync-be`](https://github.com/awais-aman/shiftsync-be).
+Next.js front end for **ShiftSync**, a staff-scheduling tool for a restaurant
+group with four sites across two timezones.
 
-## Tech stack
+API: [`shiftsync-be`](../shiftsync-be)
 
-| Layer | Tech |
-|---|---|
-| Framework | Next.js 16 (App Router, React 19, Turbopack) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS v4 |
-| UI primitives | shadcn/ui (base-nova variant, built on `@base-ui/react`) |
-| Server state | TanStack Query v5 |
-| Forms / validation | React Hook Form + Zod |
-| Auth | Supabase Auth via `@supabase/ssr` (browser + server-side helpers) |
-| Realtime | Supabase Realtime (`postgres_changes` on the `notifications` table) |
-| Time / timezones | `date-fns` + `date-fns-tz` |
-| Toasts | `sonner` |
-| Hosting | Vercel |
+![The schedule overview](docs/screenshots/dashboard.png)
 
-The backend is a NestJS API hosted on Railway and a Supabase Postgres database.
+---
 
-## Architecture
+## Run it
 
-- **App Router** under `src/app/` — every route is a thin `page.tsx` that renders an async server component from `_components/`.
-- **Component pattern** — pages render `_components/<Name>.tsx`, never inline JSX. Files are PascalCase. Async server components for data-loading + role gating; `'use client'` only where needed.
-- **Per-feature folders** for `types/`, `hooks/`, and route components (e.g. `src/app/shifts/`, `src/hooks/shifts/`, `src/types/shift/`).
-- **`apiFetch`** (`src/lib/api/server.ts`) for server components — returns `ApiResult<T>` discriminated union, never throws.
-- **`apiClientFetch`** (`src/lib/api/client.ts`) for client components — throws on non-2xx, used inside TanStack Query mutations.
-- **`shared/routes.ts`** centralises every backend URL + every frontend route. Pages and API calls reference these constants — no string URLs anywhere else.
-- **`shared/constants.ts`** holds enums (`UserRole`, `QueryKeys`, etc).
-- **Realtime + side-channel invalidation** — the `NotificationBell` subscribes to `notifications` rows for the current user via Supabase Postgres CHANGES. When a notification arrives it invalidates the relevant TanStack Query keys so swap inboxes / shift lists / assignments refetch live without their own subscriptions.
-- **Proxy** (`src/proxy.ts`, replaces `middleware.ts` in Next 16) handles auth-gated routes — if there's no session, redirects to `/login?next=<path>`.
-
-## Local development
-
-Requirements: Node 22+, npm, the backend running locally on `:4000`.
+Both repositories must be cloned as siblings. From `shiftsync-be`:
 
 ```bash
-git clone https://github.com/awais-aman/shiftsync-fe.git
-cd shiftsync-fe
-npm install
-
-cp .env.example .env.local
-# Fill in NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
-# NEXT_PUBLIC_BACKEND_ENDPOINT (point to your local BE)
-
-npm run dev
+docker compose up --build
 ```
 
-Visit `http://localhost:3000`.
+Then open **http://localhost:3200** and sign in with a seeded account:
 
-### Required env vars
+| Role | Email | Password |
+|---|---|---|
+| Admin | `admin@coastaleats.test` | `CoastalEats!2026` |
+| Manager | `east-manager@coastaleats.test` | `CoastalEats!2026` |
+| Staff | `sarah@coastaleats.test` | `CoastalEats!2026` |
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://<project>.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-NEXT_PUBLIC_BACKEND_ENDPOINT=http://localhost:4000/api    # in production: https://<railway-url>/api
-```
+No credentials to obtain — see the API's README for how identity resolves.
 
-The `NEXT_PUBLIC_*` prefix is required because these are read in client components.
-
-## Deployment (Vercel)
-
-This app is live at **https://shiftsync-fe-ten.vercel.app** (backed by `https://shiftsync-be-production.up.railway.app/api`).
-
-To deploy a fresh copy:
-
-1. New project → Import GitHub repo `shiftsync-fe`
-2. **Settings → Environment Variables**: paste the three `NEXT_PUBLIC_*` vars above for **Production**
-3. Set `NEXT_PUBLIC_BACKEND_ENDPOINT` to your Railway URL with `/api` suffix
-4. Trigger a redeploy (env var changes need a redeploy to take effect)
-5. Note the production URL (`<project>.vercel.app`); add it to the BE's `CORS_ORIGIN` env var on Railway
-
-## Routes & roles
-
-The dashboard at `/dashboard` shows links scoped to the user's role. Full route map:
-
-| Route | Who can see it |
-|---|---|
-| `/login`, `/signup`, `/auth/callback` | Public |
-| `/dashboard` | All signed-in users (role-aware sections) |
-| `/locations`, `/locations/new` | Admin only (the page redirects non-admins) |
-| `/skills`, `/skills/new` | Admin only |
-| `/team`, `/team/[id]` | Admin only |
-| `/shifts`, `/shifts/[id]` | All — list scoped per role (admin = all, manager = managed, staff = published at certified locations) |
-| `/shifts/new` | Admin + Manager |
-| `/availability` | Staff (manage own); admin/manager can view via `/team/[id]` |
-| `/swaps` | All — admin/manager also see the approval queue |
-| `/swaps/open` | Staff (claim drops they're qualified for) |
-| `/on-duty` | All — currently active shifts grouped by location, scoped per role |
-| `/analytics` | Admin + Manager (fairness + overtime cost dashboards) |
-| `/admin/audit` | Admin only |
-
-## Test credentials
-
-Same password for all seeded accounts: `CoastalEats!2026`.
-
-| Role | Email |
-|---|---|
-| admin | `admin@coastaleats.test` |
-| manager | `east-manager@coastaleats.test` (Brooklyn + Boston) |
-| manager | `west-manager@coastaleats.test` (Santa Monica + Berkeley) |
-| staff | `sarah@coastaleats.test` (PT, bartender + server, has 7th-day override) |
-| staff | `john@coastaleats.test` (cross-tz; bartender — Timezone Tangle scenario) |
-| staff | `tom@coastaleats.test` (PT, line cook + server, has an in-flight drop) |
-
-See the BE README for the full credential table.
-
-## Scripts
+<details>
+<summary>Running this app on its own</summary>
 
 ```bash
-npm run dev         # Next dev server (Turbopack)
-npm run build       # production build
-npm run start       # serve the production build
-npm run lint
+npm ci
+cp .env.example .env      # point NEXT_PUBLIC_BACKEND_ENDPOINT at a running API
+npm run dev               # :3000
 ```
+</details>
+
+---
+
+## Two things worth looking at
+
+### Auto-fill, with its reasoning shown
+
+![Auto-fill](docs/screenshots/planner.png)
+
+Every proposed assignment carries the sentence that justifies it — *"had the
+fewest hours this week (0.0h) among 2 eligible staff"*, or *"was the only person
+who cleared every rule for this shift"*. Slots that stay open list why, broken
+down by how many staff each reason blocked.
+
+The summary is badged **computed** or **written by model** so a reader always
+knows which they are looking at. Nothing is saved until the manager assigns it.
+
+### Fairness you can actually see
+
+![Analytics](docs/screenshots/analytics.png)
+
+Hours and premium-shift distribution side by side, because "everyone works the
+same hours" and "everyone takes a turn on Saturday night" are different
+questions and a roster can pass one while failing the other.
+
+---
+
+## How it is put together
+
+```mermaid
+flowchart TB
+    subgraph browser["Browser"]
+        UI[Client components]
+        RQ[TanStack Query]
+    end
+    subgraph server["Next.js server"]
+        SHELL[app/&#40;app&#41;/layout<br/>role-aware shell]
+        PAGES[Server components]
+        SESS[session.server<br/>token + current user]
+        PROXY[proxy.ts<br/>route protection]
+    end
+    AUTH{{isSupabaseConfigured?}}
+    SB[(Supabase Auth)]
+    COOKIE[(httpOnly cookie)]
+    API[(ShiftSync API)]
+
+    PROXY --> AUTH
+    SESS --> AUTH
+    AUTH -.hosted.-> SB
+    AUTH -.self-hosted.-> COOKIE
+    SHELL --> PAGES --> SESS --> API
+    UI --> RQ --> API
+```
+
+### Authentication has one seam
+
+`isSupabaseConfigured()` is the only place that asks which mode is running.
+Everything else — pages, the route proxy, the API clients — goes through
+`getSessionUser()` and `getAccessToken()` and never knows the difference.
+
+Self-hosted, the token lives in an **httpOnly** cookie so an injected script
+cannot lift it from `document.cookie`. Client components that need it call a
+same-origin route which returns it, cached briefly to avoid a round trip per
+request.
+
+Route protection in `proxy.ts` only decides *which page to show*. It is not
+authorisation — every request the page makes is verified again by the API,
+which holds the signing key.
+
+### One shell, role-aware navigation
+
+Every signed-in route lives under the `(app)` route group and shares one layout
+that fetches the profile once and hides navigation the current role cannot use.
+
+Each page used to end in a "Back to dashboard" link, so moving between sections
+meant a round trip through the overview. A standing sidebar turns that into one
+click and makes the whole product visible at once.
+
+### Live updates degrade rather than break
+
+`useTableChannel` subscribes to Postgres changes through Supabase Realtime when
+it is configured. Without it, the same callback is driven on a 15-second
+interval instead — consumers refetch either way, so no component knows which is
+running. Polling is worse latency, not worse correctness.
+
+---
+
+## Stack
+
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript (strict) ·
+Tailwind v4 · shadcn/ui on Base UI · TanStack Query v5 · React Hook Form + Zod ·
+`date-fns-tz` · Supabase Auth (optional)
+
+## Configuration
+
+| Variable | Purpose |
+|---|---|
+| `NEXT_PUBLIC_BACKEND_ENDPOINT` | API URL **as the browser sees it**; baked into the bundle at build time |
+| `API_BASE_URL_INTERNAL` | API URL as the Next.js *server* sees it. Needed under Compose, where the browser uses `localhost:4000` but the web container must use `api:4000` |
+| `NEXT_PUBLIC_SUPABASE_URL` / `..._PUBLISHABLE_KEY` | Leave blank for self-hosted identity |
+
+That first pair being different is not incidental: a single URL cannot serve
+both, and getting it wrong produces a login that fails only inside the
+container.
+
+## Known limitations
+
+- **No dark theme.** Tokens exist for one, but no toggle is wired.
+- **Polling, not push, when self-hosted.** A notification can be up to 15
+  seconds late.
+- **The shifts list is a flat list.** For a real week a manager wants a grid by
+  day and location; the current view stays readable at ten shifts and would not
+  at a hundred.
+- **No end-to-end tests.** The API is well covered; this app is verified by
+  hand and by the Playwright pass used to produce the screenshots above.
