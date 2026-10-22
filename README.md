@@ -164,3 +164,7 @@ The tests sign in as admin and staff, compute a roster proposal, and verify the 
 account cannot enter the manager planner. Use a disposable seed database. Desktop and
 [mobile planner](docs/screenshots/planner-mobile.png) captures were taken from the native
 app; the planner explanation in these captures is computed locally.
+
+## Author
+
+[**Muhammad Nadeem**](https://github.com/dev-mnadeem)
