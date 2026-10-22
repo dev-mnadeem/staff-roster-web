@@ -3,7 +3,7 @@
 Next.js front end for **ShiftSync**, a staff-scheduling tool for a restaurant
 group with four sites across two timezones.
 
-API: [`shiftsync-be`](../shiftsync-be)
+API: [staff-roster-api](https://github.com/dev-mnadeem/staff-roster-api)
 
 ![The schedule overview](docs/screenshots/dashboard.png)
 
@@ -11,7 +11,7 @@ API: [`shiftsync-be`](../shiftsync-be)
 
 ## Run it
 
-Both repositories must be cloned as siblings. From `shiftsync-be`:
+Both repositories must be cloned as siblings. From `staff-roster-api`:
 
 ```bash
 docker compose up --build
@@ -151,3 +151,16 @@ container.
   at a hundred.
 - **No end-to-end tests.** The API is well covered; this app is verified by
   hand and by the Playwright pass used to produce the screenshots above.
+
+## Browser regressions
+
+With the seeded API and this web app running, run:
+
+```bash
+E2E_BASE_URL=http://localhost:3200 E2E_PASSWORD='<your SEED_PASSWORD>' npm run test:e2e
+```
+
+The tests sign in as admin and staff, compute a roster proposal, and verify the staff
+account cannot enter the manager planner. Use a disposable seed database. Desktop and
+[mobile planner](docs/screenshots/planner-mobile.png) captures were taken from the native
+app; the planner explanation in these captures is computed locally.
