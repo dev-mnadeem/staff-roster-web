@@ -72,7 +72,7 @@ flowchart TB
         RQ[TanStack Query]
     end
     subgraph server["Next.js server"]
-        SHELL[app/&#40;app&#41;/layout<br/>role-aware shell]
+        SHELL["app/(app)/layout<br/>role-aware shell"]
         PAGES[Server components]
         SESS[session.server<br/>token + current user]
         PROXY[proxy.ts<br/>route protection]
